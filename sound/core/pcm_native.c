@@ -219,6 +219,229 @@ static const char * const snd_pcm_hw_param_names[] = {
 #endif
 
 int snd_pcm_hw_refine(struct snd_pcm_substream *substream, 
+		/* This parameter is not requested to change by a caller. */
+		if (!(params->rmask & (1 << k)))
+			continue;
+
+		if (trace_hw_mask_param_enabled())
+			old_mask = *m;
+
+		changed = snd_mask_refine(m, constrs_mask(constrs, k));
+		if (changed < 0)
+			return changed;
+		if (changed == 0)
+			continue;
+
+		/* Set corresponding flag so that the caller gets it. */
+		trace_hw_mask_param(substream, k, 0, &old_mask, m);
+		params->cmask |= 1 << k;
+	}
+
+	return 0;
+}
+
+static int constrain_interval_params(struct snd_pcm_substream *substream,
+				     struct snd_pcm_hw_params *params)
+{
+	struct snd_pcm_hw_constraints *constrs =
+					&substream->runtime->hw_constraints;
+	struct snd_interval *i;
+	unsigned int k;
+	struct snd_interval old_interval;
+	int changed;
+
+	for (k = SNDRV_PCM_HW_PARAM_FIRST_INTERVAL; k <= SNDRV_PCM_HW_PARAM_LAST_INTERVAL; k++) {
+		i = hw_param_interval(params, k);
+		if (snd_interval_empty(i))
+			return -EINVAL;
+
+		/* This parameter is not requested to change by a caller. */
+		if (!(params->rmask & (1 << k)))
+			continue;
+
+		if (trace_hw_interval_param_enabled())
+			old_interval = *i;
+
+		changed = snd_interval_refine(i, constrs_interval(constrs, k));
+		if (changed < 0)
+			return changed;
+		if (changed == 0)
+			continue;
+
+		/* Set corresponding flag so that the caller gets it. */
+		trace_hw_interval_param(substream, k, 0, &old_interval, i);
+		params->cmask |= 1 << k;
+	}
+
+	return 0;
+}
+
+static int constrain_params_by_rules(struct snd_pcm_substream *substream,
+				     struct snd_pcm_hw_params *params)
+{
+	struct snd_pcm_hw_constraints *constrs =
+					&substream->runtime->hw_constraints;
+	unsigned int k;
+	unsigned int *rstamps;
+	unsigned int vstamps[SNDRV_PCM_HW_PARAM_LAST_INTERVAL + 1];
+	unsigned int stamp;
+	struct snd_pcm_hw_rule *r;
+	unsigned int d;
+	struct snd_mask old_mask;
+	struct snd_interval old_interval;
+	bool again;
+	int changed, err = 0;
+
+	/*
+	 * Each application of rule has own sequence number.
+	 *
+	 * Each member of 'rstamps' array represents the sequence number of
+	 * recent application of corresponding rule.
+	 */
+	rstamps = kcalloc(constrs->rules_num, sizeof(unsigned int), GFP_KERNEL);
+	if (!rstamps)
+		return -ENOMEM;
+
+	/*
+	 * Each member of 'vstamps' array represents the sequence number of
+	 * recent application of rule in which corresponding parameters were
+	 * changed.
+	 *
+	 * In initial state, elements corresponding to parameters requested by
+	 * a caller is 1. For unrequested parameters, corresponding members
+	 * have 0 so that the parameters are never changed anymore.
+	 */
+	for (k = 0; k <= SNDRV_PCM_HW_PARAM_LAST_INTERVAL; k++)
+		vstamps[k] = (params->rmask & (1 << k)) ? 1 : 0;
+
+	/* Due to the above design, actual sequence number starts at 2. */
+	stamp = 2;
+retry:
+	/* Apply all rules in order. */
+	again = false;
+	for (k = 0; k < constrs->rules_num; k++) {
+		r = &constrs->rules[k];
+
+		/*
+		 * Check condition bits of this rule. When the rule has
+		 * some condition bits, parameter without the bits is
+		 * never processed. SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP
+		 * is an example of the condition bits.
+		 */
+		if (r->cond && !(r->cond & params->flags))
+			continue;
+
+		/*
+		 * The 'deps' array includes maximum three dependencies
+		 * to SNDRV_PCM_HW_PARAM_XXXs for this rule. The fourth
+		 * member of this array is a sentinel and should be
+		 * negative value.
+		 *
+		 * This rule should be processed in this time when dependent
+		 * parameters were changed at former applications of the other
+		 * rules.
+		 */
+		for (d = 0; r->deps[d] >= 0; d++) {
+			if (vstamps[r->deps[d]] > rstamps[k])
+				break;
+		}
+		if (r->deps[d] < 0)
+			continue;
+
+		if (trace_hw_mask_param_enabled()) {
+			if (hw_is_mask(r->var))
+				old_mask = *hw_param_mask(params, r->var);
+		}
+		if (trace_hw_interval_param_enabled()) {
+			if (hw_is_interval(r->var))
+				old_interval = *hw_param_interval(params, r->var);
+		}
+
+		changed = r->func(params, r);
+		if (changed < 0) {
+			err = changed;
+			goto out;
+		}
+
+		/*
+		 * When the parameter is changed, notify it to the caller
+		 * by corresponding returned bit, then preparing for next
+		 * iteration.
+		 */
+		if (changed && r->var >= 0) {
+			if (hw_is_mask(r->var)) {
+				trace_hw_mask_param(substream, r->var,
+					k + 1, &old_mask,
+					hw_param_mask(params, r->var));
+			}
+			if (hw_is_interval(r->var)) {
+				trace_hw_interval_param(substream, r->var,
+					k + 1, &old_interval,
+					hw_param_interval(params, r->var));
+			}
+
+			params->cmask |= (1 << r->var);
+			vstamps[r->var] = stamp;
+			again = true;
+		}
+
+		rstamps[k] = stamp++;
+	}
+
+	/* Iterate to evaluate all rules till no parameters are changed. */
+	if (again)
+		goto retry;
+
+ out:
+	kfree(rstamps);
+	return err;
+}
+
+static int fixup_unreferenced_params(struct snd_pcm_substream *substream,
+				     struct snd_pcm_hw_params *params)
+{
+	const struct snd_interval *i;
+	const struct snd_mask *m;
+	int err;
+
+	if (!params->msbits) {
+		i = hw_param_interval_c(params, SNDRV_PCM_HW_PARAM_SAMPLE_BITS);
+		if (snd_interval_single(i))
+			params->msbits = snd_interval_value(i);
+	}
+
+	if (!params->rate_den) {
+		i = hw_param_interval_c(params, SNDRV_PCM_HW_PARAM_RATE);
+		if (snd_interval_single(i)) {
+			params->rate_num = snd_interval_value(i);
+			params->rate_den = 1;
+		}
+	}
+
+	if (!params->fifo_size) {
+		m = hw_param_mask_c(params, SNDRV_PCM_HW_PARAM_FORMAT);
+		i = hw_param_interval_c(params, SNDRV_PCM_HW_PARAM_CHANNELS);
+		if (snd_mask_single(m) && snd_interval_single(i)) {
+			err = substream->ops->ioctl(substream,
+					SNDRV_PCM_IOCTL1_FIFO_SIZE, params);
+			if (err < 0)
+				return err;
+		}
+	}
+
+	if (!params->info) {
+		params->info = substream->runtime->hw.info;
+		params->info &= ~(SNDRV_PCM_INFO_FIFO_IN_FRAMES |
+				  SNDRV_PCM_INFO_DRAIN_TRIGGER);
+		if (!hw_support_mmap(substream))
+			params->info &= ~(SNDRV_PCM_INFO_MMAP |
+					  SNDRV_PCM_INFO_MMAP_VALID);
+	}
+
+	return 0;
+}
+
+int snd_pcm_hw_refine(struct snd_pcm_substream *substream,
 		      struct snd_pcm_hw_params *params)
 {
 	unsigned int k;
