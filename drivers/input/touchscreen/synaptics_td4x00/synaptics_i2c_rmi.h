@@ -1143,11 +1143,7 @@ struct synaptics_rmi4_fwu_handle {
 #define MAX_VAL_OFFSET_AND_LENGTH	10
 #define DEBUG_STR_LEN	(CMD_STR_LEN * 2)
 
-#define DEBUG_PRNT_SCREEN(_dest, _temp, _length, fmt, ...)	\
-({	\
-	snprintf(_temp, _length, fmt, ## __VA_ARGS__);	\
-	strcat(_dest, _temp);	\
-})
+#define DEBUG_PRNT_SCREEN(_dest, _temp, _length, fmt, ...)
 
 #define FT_CMD(name, func) .cmd_name = name, .cmd_func = func
 

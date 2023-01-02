@@ -18,10 +18,7 @@
 #ifndef _GPU_DVFS_HANDLER_H_
 #define _GPU_DVFS_HANDLER_H_
 
-#define DVFS_ASSERT(x) \
-do { if (x) break; \
-	printk(KERN_EMERG "### ASSERTION FAILED %s: %s: %d: %s\n", __FILE__, __func__, __LINE__, #x); dump_stack(); \
-} while (0)
+#define DVFS_ASSERT(x)
 
 typedef enum {
 	GPU_DVFS_MAX_LOCK = 0,

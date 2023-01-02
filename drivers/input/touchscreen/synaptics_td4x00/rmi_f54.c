@@ -6059,10 +6059,10 @@ int change_report_rate(struct synaptics_rmi4_data *rmi4_data, int mode)
 		rpt_rate = SYNAPTICS_RPT_RATE_90HZ_VAL;
 		break;
 	case SYNAPTICS_RPT_RATE_60HZ:
-		rpt_rate = SYNAPTICS_RPT_RATE_60HZ_VAL;
+		rpt_rate = SYNAPTICS_RPT_RATE_90HZ_VAL;
 		break;
 	case SYNAPTICS_RPT_RATE_30HZ:
-		rpt_rate = SYNAPTICS_RPT_RATE_30HZ_VAL;
+		rpt_rate = SYNAPTICS_RPT_RATE_90HZ_VAL;
 		break;
 	}
 
