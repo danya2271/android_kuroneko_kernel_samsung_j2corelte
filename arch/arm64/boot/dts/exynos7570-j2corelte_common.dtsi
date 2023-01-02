@@ -281,7 +281,7 @@
 		dispif_resol = <540 960>;
 		size = <62 110>;
 		ddi_type = <0>;
-		timing,refresh = <60>;
+		timing,refresh = <75>;
 
 		/* dsim H porch : hbp, hfp, hsa */
 		timing,dsim_h-porch = <40 240 4>;

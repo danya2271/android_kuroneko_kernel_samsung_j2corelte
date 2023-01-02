@@ -267,7 +267,7 @@
 		resolution = <540 960>;
 		size = <68 121>;
 		ddi_type = <0>;
-		timing,refresh = <60>;
+		timing,refresh = <75>;
 
 		/* dsim H porch : hbp, hfp, hsa */
 		timing,dsim_h-porch = <35 35 28>;
