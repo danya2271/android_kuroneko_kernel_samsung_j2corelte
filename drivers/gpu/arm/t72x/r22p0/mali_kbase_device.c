@@ -683,12 +683,6 @@ const struct file_operations kbasep_trace_debugfs_fops = {
 
 void kbasep_trace_debugfs_init(struct kbase_device *kbdev)
 {
-/* MALI_SEC_INTEGRATION */
-#ifndef CONFIG_MALI_EXYNOS_TRACE
-	debugfs_create_file("mali_trace", S_IRUGO,
-			kbdev->mali_debugfs_directory, kbdev,
-			&kbasep_trace_debugfs_fops);
-#endif
 }
 
 #else
