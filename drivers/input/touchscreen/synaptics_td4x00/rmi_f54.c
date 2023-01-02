@@ -2112,7 +2112,7 @@ static ssize_t cmd_show_result_all(struct device *dev,
 	}
 
 	data->cmd_state = CMD_STATUS_WAITING;
-	pr_info("%s %s: %d, %s\n", SECLOG, __func__, data->item_count, data->cmd_result_all);
+//	pr_info("%s %s: %d, %s\n", SECLOG, __func__, data->item_count, data->cmd_result_all);
 	size = snprintf(buf, CMD_RESULT_STR_LEN, "%d%s\n", data->item_count, data->cmd_result_all);
 
 	mutex_lock(&data->cmd_lock);
@@ -4427,22 +4427,22 @@ static int synaptics_rmi4_amp_open_data_testing(struct synaptics_rmi4_data *rmi4
 	{
 		char str[250] = {0,};
 		int k = 0;
-		pr_info("left median\n");
+//		pr_info("left median\n");
 		for (i = 0; i < rx_num; i++) {
 			snprintf(str+k, 250, "%5d ", p_left_median[i]);
 			k += 6;
 		}
-		pr_info("%s\n", str);
+//		pr_info("%s\n", str);
 		k = 0;
 
 		memset(str, 0x00, 250);
 
-		pr_info("right median\n");
+//		pr_info("right median\n");
 		for (i = 0; i < rx_num; i++) {
 			snprintf(str+k, 250, "%5d ",  p_right_median[i]);
 			k +=6;
 		}
-		pr_info("%s\n", str);
+//		pr_info("%s\n", str);
 	}
 
 exit:
@@ -4640,13 +4640,13 @@ static void run_trx_open_test(void *dev_data)
 	{
 		char str[250] = {0,};
 		int k = 0;
-		pr_info("p_rt92_image_1\n");
+//		pr_info("p_rt92_image_1\n");
 		for (i = 0; i < rx_num; i++) {
 			for (j = 0; j < tx_num; j++) {
 				snprintf(str+k, 250, "%5d ", p_rt92_image_1[j * rx_num + i]);
 				k += 6;
 			}
-			pr_info("%s\n", str);
+//			pr_info("%s\n", str);
 			k = 0;
 			memset(str, 0x00, 250);
 		}
@@ -4697,8 +4697,8 @@ static void run_trx_open_test(void *dev_data)
 		int k = 0;
 
 		retval = rmi4_data->i2c_read(rmi4_data, control.reg_99->address, dbg_data_f54_ctrl99, sizeof(dbg_data_f54_ctrl99));
-		pr_info("p_report_data_8\n");
-		pr_info("dbg: 0x%02x, 0x%02x, 0x%02x\n", dbg_data_f54_ctrl99[0], dbg_data_f54_ctrl99[1], dbg_data_f54_ctrl99[2]);
+//		pr_info("p_report_data_8\n");
+//		pr_info("dbg: 0x%02x, 0x%02x, 0x%02x\n", dbg_data_f54_ctrl99[0], dbg_data_f54_ctrl99[1], dbg_data_f54_ctrl99[2]);
 
 		for (i = 0; i < rx_num * 2; i++) {
 			for (j = 0; j < tx_num; j++) {
@@ -4724,13 +4724,13 @@ static void run_trx_open_test(void *dev_data)
 	{
 		char str[250] = {0,};
 		int k = 0;
-		pr_info("p_rt92_image_2\n");
+//		pr_info("p_rt92_image_2\n");
 		for (i = 0; i < rx_num; i++) {
 			for (j = 0; j < tx_num; j++) {
 				snprintf(str+k, 250, "%5d ", p_rt92_image_2[j * rx_num + i]);
 				k += 6;
 			}
-			pr_info("%s\n", str);
+//			pr_info("%s\n", str);
 			k = 0;
 			memset(str, 0x00, 250);
 		}
