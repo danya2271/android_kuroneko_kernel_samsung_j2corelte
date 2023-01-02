@@ -125,7 +125,7 @@ static void tracing_mark_write( int pid, char id, char* str1, int value )
 		return;
 	}
 
-	trace_puts(buf);
+//	trace_puts(buf);
 }
 /*-----------------------------------------------------------------*/
 

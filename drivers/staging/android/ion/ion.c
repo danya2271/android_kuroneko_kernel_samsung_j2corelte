@@ -1107,10 +1107,11 @@ static int ion_debug_client_show(struct seq_file *s, void *unused)
 			names[id] = buffer->heap->name;
 		sizes[id] += buffer->size;
 		sizes_pss[id] += (buffer->size / buffer->handle_count);
-		seq_printf(s, "%16.s %4u %16.s %4u %10zu %8d %9lx\n",
+/*		seq_printf(s, "%16.s %4u %16.s %4u %10zu %8d %9lx\n",
 			   buffer->task_comm, buffer->pid,
 				buffer->thread_comm, buffer->tid, buffer->size,
 				buffer->handle_count, buffer->flags);
+*/
 	}
 	mutex_unlock(&client->lock);
 	up_read(&g_idev->lock);

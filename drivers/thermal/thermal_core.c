@@ -1872,7 +1872,7 @@ static int __cpuinit thermal_cpu_callback(struct notifier_block *nfb,
 	unsigned int cpu = (unsigned long)hcpu;
 	struct thermal_zone_device *pos;
 
-	switch (action) {
+	/*switch (action) {
 	case CPU_ONLINE:
 		if (cpu == BOUNDED_CPU) {
 			list_for_each_entry(pos, &thermal_tz_list, node) {
@@ -1889,7 +1889,7 @@ static int __cpuinit thermal_cpu_callback(struct notifier_block *nfb,
 			}
 		}
 		break;
-	}
+	}*/
 	return NOTIFY_OK;
 }
 
@@ -1918,11 +1918,11 @@ static int __init thermal_init(void)
 	result = of_parse_thermal_zones();
 	if (result)
 		goto exit_netlink;
-
+/*
 #ifdef CONFIG_SCHED_MC
 	register_hotcpu_notifier(&thermal_cpu_notifier);
 #endif
-
+*/
 	return 0;
 
 exit_netlink:

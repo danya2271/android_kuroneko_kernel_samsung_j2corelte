@@ -1,6 +1,7 @@
 #
 # Makefile for sensor chip drivers.
 #
+KBUILD_CFLAGS += -Wno-unused-variable
 
 obj-$(CONFIG_THERMAL)		+= thermal_sys.o
 thermal_sys-y			+= thermal_core.o
