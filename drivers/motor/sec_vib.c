@@ -29,7 +29,6 @@
 #include "../staging/android/timed_output.h"
 
 #define SEC_VIB_NAME "sec_vib"
-#define DEBUG_MOTOR_LOG
 
 #define INTERNAL_LDO	0
 #define EXTERNAL_LDO	1
@@ -44,12 +43,6 @@ struct sec_vib_pdata {
 	int gpio_ldo_en;
 };
 
-#if defined(DEBUG_MOTOR_LOG)
-struct debug_log {
-	u64 start;
-	u64 stop;
-};
-#endif
 
 struct sec_vib_drvdata {
 	struct regulator *regulator;
@@ -57,10 +50,6 @@ struct sec_vib_drvdata {
 	struct hrtimer timer;
 	struct workqueue_struct *workqueue;
 	struct work_struct work;
-#if defined(DEBUG_MOTOR_LOG)
-	struct debug_log buff;
-	struct delayed_work log_work;
-#endif
 	spinlock_t lock;
 	bool running;
 	int max_timeout;
@@ -126,7 +115,7 @@ static void sec_vib_enable(struct timed_output_dev *dev, int value)
 		container_of(dev, struct sec_vib_drvdata, dev);
 	unsigned long	flags;
 
-	printk("[VIB] %s, timedout = %d \n", __func__, value);
+//	printk("[VIB] %s, timedout = %d \n", __func__, value);
 
 	hrtimer_cancel(&ddata->timer);
 
@@ -155,23 +144,17 @@ static void sec_vib_work(struct work_struct *work)
 	struct sec_vib_drvdata *ddata =
 		container_of(work, struct sec_vib_drvdata, work);
 
-	printk("[VIB] %s, timedout = %d , running = %d \n", __func__, ddata->timeout, ddata->running );
+//	printk("[VIB] %s, timedout = %d , running = %d \n", __func__, ddata->timeout, ddata->running );
 
 	if (ddata->timeout > 0) {
 		if (ddata->running)
 			return;
 		sec_vib_vdd_en(&ddata->dev, LDO_EN);
-#if defined(DEBUG_MOTOR_LOG)
-		ddata->buff.start = local_clock();
-#endif
 		ddata->running = true;
 	} else {
 		if (!ddata->running)
 			return;
 		sec_vib_vdd_en(&ddata->dev, LDO_DIS);
-#if defined(DEBUG_MOTOR_LOG)
-		ddata->buff.stop = local_clock();
-#endif
 		ddata->running = false;
 	}
 	return;
@@ -220,26 +203,6 @@ static struct sec_vib_pdata *sec_vib_get_dt(struct device *dev)
 
 err_out:
 	return ERR_PTR(ret);
-}
-#endif
-
-#if defined(DEBUG_MOTOR_LOG)
-void sec_vib_log_show(struct work_struct *work)
-{
-	struct sec_vib_drvdata *ddata =
-			container_of(work, struct sec_vib_drvdata, log_work.work);
-	u64 start_sec = ddata->buff.start;
-	u64 stop_sec = ddata->buff.stop;
-	unsigned long start_nsec = do_div(start_sec, 1000000000);
-	unsigned long stop_nsec = do_div(stop_sec, 1000000000);
-
-	printk(KERN_DEBUG
-		"[VIB] %s [%lu.%03lu : %lu.%03lu]\n",
-		__func__,
-		(unsigned long)start_sec, start_nsec / 1000000,
-		(unsigned long)stop_sec, stop_nsec / 1000000);
-
-	schedule_delayed_work(&ddata->log_work, msecs_to_jiffies(60000));
 }
 #endif
 
@@ -302,10 +265,6 @@ static int sec_vib_probe(struct platform_device *pdev)
 	}
 
 	INIT_WORK(&(ddata->work), sec_vib_work);
-#if defined(DEBUG_MOTOR_LOG)
-	INIT_DELAYED_WORK(&ddata->log_work, sec_vib_log_show);
-	schedule_delayed_work(&ddata->log_work, msecs_to_jiffies(60000));
-#endif
 	ddata->dev.name = "vibrator";
 	ddata->dev.get_time = sec_vib_get_time;
 	ddata->dev.enable = sec_vib_enable;
